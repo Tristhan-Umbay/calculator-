@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musical Calculator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the calculator */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem; /* Add some padding for smaller screens */
+        }
+        .calculator {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 360px; /* Max width for desktop */
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .display {
+            background-color: #1a202c; /* Dark background for display */
+            color: #e2e8f0; /* Light text color */
+            font-size: 2.5rem; /* Larger font size */
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            text-align: right;
+            min-height: 4rem; /* Ensure minimum height */
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            overflow-x: auto; /* Allow horizontal scrolling for long numbers */
+            white-space: nowrap; /* Prevent wrapping */
+        }
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem; /* Slightly smaller gap */
+        }
+        .button {
+            background-color: #e2e8f0; /* Light gray button background */
+            color: #2d3748; /* Dark text color */
+            font-size: 1.5rem;
+            padding: 1rem;
+            border-radius: 9999px; /* Fully rounded buttons */
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none; /* Prevent text selection */
+            min-width: 60px; /* Ensure minimum width for buttons */
+            min-height: 60px; /* Ensure minimum height for buttons */
+        }
+        .button:hover {
+            background-color: #cbd5e0; /* Darker on hover */
+        }
+        .button:active {
+            transform: scale(0.95); /* Slight press effect */
+        }
+        .button.operator {
+            background-color: #f6ad55; /* Orange for operators */
+            color: #ffffff;
+        }
+        .button.operator:hover {
+            background-color: #ed8936;
+        }
+        .button.equals {
+            background-color: #48bb78; /* Green for equals */
+            color: #ffffff;
+            grid-column: span 2; /* Make equals button span two columns */
+        }
+        .button.equals:hover {
+            background-color: #38a169;
+        }
+        .button.clear {
+            background-color: #ef4444; /* Red for clear */
+            color: #ffffff;
+        }
+        .button.clear:hover {
+            background-color: #dc2626;
+        }
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none; /* Allow clicks to pass through when hidden */
+        }
+        .message-box.show {
+            opacity: 1;
+        }
+
+        /* Styles for the video overlay */
+        .video-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000; /* Above calculator and message box */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s;
+        }
+        .video-overlay.show-video {
+            opacity: 1;
+            visibility: visible;
+        }
+        .video-overlay video {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display" id="display">0</div>
+        <div class="buttons-grid">
+            <div class="button clear" data-value="C">C</div>
+            <div class="button operator" data-value="/">/</div>
+            <div class="button operator" data-value="*">*</div>
+            <div class="button operator" data-value="-">-</div>
+
+            <div class="button" data-value="7">7</div>
+            <div class="button" data-value="8">8</div>
+            <div class="button" data-value="9">9</div>
+            <div class="button operator" data-value="+">+</div>
+
+            <div class="button" data-value="4">4</div>
+            <div class="button" data-value="5">5</div>
+            <div class="button" data-value="6">6</div>
+            <div class="button" data-value=".">.</div>
+
+            <div class="button" data-value="1">1</div>
+            <div class="button" data-value="2">2</div>
+            <div class="button" data-value="3">3</div>
+            <div class="button equals" data-value="=">=</div>
+
+            <div class="button" data-value="0">0</div>
+            <div class="button" data-value="00">00</div>
+            <div class="button" data-value="(">(</div>
+            <div class="button" data-value=")">)</div>
+        </div>
+    </div>
+
+    <!-- Message Box for alerts -->
+    <div id="messageBox" class="message-box"></div>
+
+    <!-- Video Overlay -->
+    <div id="videoOverlay" class="video-overlay">
+        <video id="videoPlayer" controls preload="auto">
+            <!-- IMPORTANT: You MUST replace the empty src="" below with an actual, age-appropriate video URL (e.g., a short animation, celebration video). -->
+            <!-- Example: <source src="https://example.com/your-success-video.mp4" type="video/mp4"> -->
+            <!-- Ensure the video is short and suitable for a quick celebration. -->
+            <!-- Remember to use a video URL that is safe and appropriate for all ages! -->
+            <source src="relapse.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const display = document.getElementById('display');
+        const buttons = document.querySelectorAll('.button');
+        const messageBox = document.getElementById('messageBox');
+        const videoOverlay = document.getElementById('videoOverlay');
+        const videoPlayer = document.getElementById('videoPlayer');
+
+        // Initialize display value
+        let currentExpression = '';
+        let resultDisplayed = false; // Flag to check if a result is currently displayed
+
+        /**
+         * Shows a temporary message box with the given text.
+         * @param {string} message - The message to display.
+         * @param {number} duration - The duration in milliseconds to show the message.
+         */
+        function showMessageBox(message, duration = 2000) {
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, duration);
+        }
+
+        /**
+         * Plays a short video as an overlay and attempts to go full screen.
+         * Resets the calculator display and expression when the video starts.
+         */
+        function playVideo() {
+            // Check if a video source is actually loaded
+            if (!videoPlayer.currentSrc) {
+                showMessageBox("Please provide a valid video URL in the HTML code for the video to play.");
+                console.error("Video URL is missing or invalid. Please update the <source src=''> in the HTML with a real video URL.");
+                return; // Stop execution if no valid video URL
+            }
+
+            // Reset the calculator display and expression
+            currentExpression = '';
+            display.textContent = '0';
+            resultDisplayed = false;
+
+            videoPlayer.load(); // Load the video source (useful if source was changed dynamically)
+            videoOverlay.classList.add('show-video'); // Show the video overlay
+
+            // Attempt to play the video. Autoplay might be blocked by browsers,
+            // so a user interaction (like clicking the equals button) helps.
+            videoPlayer.play().then(() => {
+                // If playback starts successfully, attempt to go full screen
+                if (videoPlayer.requestFullscreen) {
+                    videoPlayer.requestFullscreen().catch(err => {
+                        console.warn("Fullscreen request failed:", err);
+                        showMessageBox("Fullscreen blocked by browser. You may need to enable it manually.");
+                    });
+                } else if (videoPlayer.webkitRequestFullscreen) { /* Safari */
+                    videoPlayer.webkitRequestFullscreen();
+                } else if (videoPlayer.msRequestFullscreen) { /* IE11 */
+                    videoPlayer.msRequestFullscreen();
+                }
+            }).catch(error => {
+                console.error("Video playback failed:", error);
+                showMessageBox("Video playback blocked or failed. Ensure a valid video URL is provided and allow autoplay.");
+            });
+
+            // Hide the video overlay and exit fullscreen when the video ends
+            videoPlayer.onended = () => {
+                videoOverlay.classList.remove('show-video');
+                videoPlayer.pause(); // Pause the video
+                videoPlayer.currentTime = 0; // Reset video to start
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { /* IE11 */
+                    document.msExitFullscreen();
+                }
+            };
+
+            // Also hide if the user clicks anywhere on the video overlay
+            // This will also exit fullscreen if it was active
+            videoOverlay.addEventListener('click', () => {
+                videoOverlay.classList.remove('show-video');
+                videoPlayer.pause();
+                videoPlayer.currentTime = 0;
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { /* IE11 */
+                    document.msExitFullscreen();
+                }
+            }, { once: true }); // Remove listener after one click
+        }
+
+        // Add event listeners to all calculator buttons
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const value = button.dataset.value;
+
+                if (value === 'C') {
+                    // Clear the display and reset expression
+                    currentExpression = '';
+                    display.textContent = '0';
+                    resultDisplayed = false;
+                } else if (value === '=') {
+                    // Evaluate the expression
+                    try {
+                        if (currentExpression === '') {
+                            showMessageBox("Enter an expression first!");
+                            return;
+                        }
+                        // Use Function constructor for safe evaluation (avoiding eval for security)
+                        // Note: This is a simplified approach. For a production app, a robust math parser is recommended.
+                        const calculate = new Function('return ' + currentExpression);
+                        let result = calculate();
+
+                        // Handle cases like division by zero or invalid results
+                        if (!isFinite(result)) {
+                            display.textContent = 'Error';
+                            showMessageBox("Cannot divide by zero or invalid operation!");
+                            currentExpression = ''; // Clear expression after error
+                        } else {
+                            display.textContent = result;
+                            currentExpression = String(result); // Set current expression to the result for further calculations
+                            resultDisplayed = true; // Mark that a result is displayed
+                            playVideo(); // Play video on successful calculation
+                        }
+                    } catch (error) {
+                        display.textContent = 'Error';
+                        showMessageBox("Invalid expression!");
+                        currentExpression = ''; // Clear expression after error
+                        console.error("Calculation error:", error);
+                    }
+                } else {
+                    // Handle number and operator inputs
+                    if (resultDisplayed && !['+', '-', '*', '/'].includes(value)) {
+                        // If a result is displayed and the next input is a number, start a new calculation
+                        currentExpression = value;
+                        resultDisplayed = false;
+                    } else if (resultDisplayed && ['+', '-', '*', '/'].includes(value)) {
+                        // If a result is displayed and the next input is an operator, continue with the result
+                        currentExpression += value;
+                        resultDisplayed = false;
+                    } else {
+                        // Append value to the current expression
+                        currentExpression += value;
+                    }
+                    display.textContent = currentExpression;
+                }
+            });
+        });
+
+        // Initialize display with '0' on load
+        window.onload = () => {
+            display.textContent = '0';
+            // Preload the video to help with faster playback
+            videoPlayer.preload = 'auto';
+            videoPlayer.load(); // Attempt to load the video specified in HTML
+        };
+    </script>
+</body>
+</html>
